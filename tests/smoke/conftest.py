@@ -24,7 +24,8 @@ def tf_output():
 
 @pytest.fixture(scope="session")
 def aws_region(tf_output):
-    return "eu-north-1"
+    region = tf_output.get("aws_region") or "eu-north-1"
+    return region
 
 
 @pytest.fixture(scope="session")

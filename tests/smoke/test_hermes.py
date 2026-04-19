@@ -8,8 +8,6 @@ Run after `terraform apply` completes and the bootstrap script has had ~5 min:
 
 import time
 
-import pytest
-
 
 class TestSSM:
     def test_instance_online(self, ssm_client, managed_instance_id):

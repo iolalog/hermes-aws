@@ -1,3 +1,8 @@
+output "aws_region" {
+  description = "AWS region of the deployment"
+  value       = var.aws_region
+}
+
 output "public_ip" {
   description = "Static public IP address of the EC2 instance"
   value       = aws_eip.hermes.public_ip
