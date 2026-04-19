@@ -32,6 +32,8 @@ printf "Slack Bot Token (xoxb-...): ";     read -s V; echo; aws ssm put-paramete
 printf "Slack App Token (xapp-...): ";     read -s V; echo; aws ssm put-parameter --region eu-north-1 --name /hermes/slack-app-token    --value "$V" --type SecureString --overwrite
 printf "Anthropic API Key (sk-ant-...): "; read -s V; echo; aws ssm put-parameter --region eu-north-1 --name /hermes/anthropic-api-key  --value "$V" --type SecureString --overwrite
 printf "OpenRouter API Key (sk-or-...): "; read -s V; echo; aws ssm put-parameter --region eu-north-1 --name /hermes/openrouter-api-key --value "$V" --type SecureString --overwrite
+printf "Tavily API Key (tvly-...): ";      read -s V; echo; aws ssm put-parameter --region eu-north-1 --name /hermes/tavily-api-key     --value "$V" --type SecureString --overwrite
+printf "GitHub Token (ghp_...): ";         read -s V; echo; aws ssm put-parameter --region eu-north-1 --name /hermes/github-token       --value "$V" --type SecureString --overwrite
 ```
 
 ## Step 4 — Deploy with Terraform

@@ -74,6 +74,8 @@ lines = [
     "SLACK_APP_TOKEN="    + get("/hermes/slack-app-token"),
     "ANTHROPIC_API_KEY="  + get("/hermes/anthropic-api-key"),
     "OPENROUTER_API_KEY=" + get("/hermes/openrouter-api-key"),
+    "TAVILY_API_KEY="     + get("/hermes/tavily-api-key"),
+    "GITHUB_TOKEN="       + get("/hermes/github-token"),
     "HOME=/root",
 ]
 path = "/root/.hermes/.env"

@@ -4,6 +4,8 @@
 #   /hermes/slack-app-token      (xapp-...)
 #   /hermes/anthropic-api-key    (sk-ant-...)
 #   /hermes/openrouter-api-key   (sk-or-...)
+#   /hermes/tavily-api-key       (tvly-...)   — web search
+#   /hermes/github-token         (ghp_...)    — Skills Hub rate limit (optional)
 #
 # Memory repo: iolalog/hermes-memory (private)
 # After deploy, add the generated /root/.ssh/hermes_memory.pub as a deploy key with write access.
