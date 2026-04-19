@@ -102,8 +102,15 @@ echo "[bootstrap] config.yaml written"
 
 # ── 11. Write /root/.hermes/SOUL.md ───────────────────────────────────────────
 cat > /root/.hermes/SOUL.md <<'SOUL'
-You are Hermes, an autonomous AI assistant. You are helpful, curious, and direct.
-You run on AWS and connect to users via Slack.
+You are Hermes, an autonomous AI assistant running on AWS EC2 and connected to Slack.
+
+You can:
+- Receive and respond to direct messages and channel messages (including @mentions) in Slack
+- Run code, search the web, read and write files, and use tools
+- Schedule tasks via cron jobs
+- Remember things across conversations via your memory system
+
+You are helpful, curious, and direct. You acknowledge your actual capabilities honestly — you are a fully connected Slack bot and can see messages sent to you in channels and DMs.
 SOUL
 
 echo "[bootstrap] SOUL.md written"
@@ -192,7 +199,49 @@ systemctl start  hermes-gateway
 
 echo "[bootstrap] hermes-gateway service enabled and started"
 
-# ── 14. Harden OS ─────────────────────────────────────────────────────────────
+# ── 14. Memory sync to GitHub ─────────────────────────────────────────────────
+ssh-keygen -t ed25519 -f /root/.ssh/hermes_memory -N "" -C "hermes-memory-deploy"
+
+echo "[bootstrap] MEMORY DEPLOY KEY (add to iolalog/hermes-memory as deploy key, write access):"
+cat /root/.ssh/hermes_memory.pub
+
+cat >> /root/.ssh/config <<'SSHCONFIG'
+
+Host github-hermes-memory
+  HostName github.com
+  IdentityFile /root/.ssh/hermes_memory
+  StrictHostKeyChecking yes
+SSHCONFIG
+
+git config --global user.email "hermes@instance"
+git config --global user.name "Hermes"
+
+# Clone memory repo (will fail until deploy key is added to GitHub)
+git clone git@github-hermes-memory:iolalog/hermes-memory.git /root/.hermes/memory-repo 2>&1 \
+  && echo "[bootstrap] memory repo cloned" \
+  || echo "[bootstrap] WARNING: memory repo clone failed — add deploy key to GitHub, then: git clone git@github-hermes-memory:iolalog/hermes-memory.git /root/.hermes/memory-repo"
+
+cat > /usr/local/bin/hermes-sync-memory <<'SYNC'
+#!/bin/bash
+export HOME=/root
+REPO=/root/.hermes/memory-repo
+rsync -a --delete /root/.hermes/memories/ $REPO/memories/
+rsync -a --delete /root/.hermes/skills/ $REPO/skills/
+cd $REPO
+git add -A
+if ! git diff --cached --quiet; then
+  git commit -m "sync $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  git push
+fi
+SYNC
+chmod +x /usr/local/bin/hermes-sync-memory
+
+printf '*/15 * * * * root /usr/local/bin/hermes-sync-memory\n' > /etc/cron.d/hermes-memory-sync
+chmod 644 /etc/cron.d/hermes-memory-sync
+
+echo "[bootstrap] Memory sync script and cron job installed"
+
+# ── 15. Harden OS ─────────────────────────────────────────────────────────────
 # Disable SSH password auth (access is via SSM Session Manager only)
 if ! grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config; then
   echo "PasswordAuthentication no" >> /etc/ssh/sshd_config

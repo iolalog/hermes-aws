@@ -20,10 +20,24 @@
       "bot": [
         "app_mentions:read",
         "channels:history",
+        "channels:read",
         "chat:write",
+        "commands",
+        "emoji:read",
+        "files:read",
+        "files:write",
+        "groups:history",
+        "groups:read",
         "im:history",
         "im:read",
         "im:write",
+        "mpim:history",
+        "mpim:read",
+        "mpim:write",
+        "pins:read",
+        "pins:write",
+        "reactions:read",
+        "reactions:write",
         "users:read"
       ]
     }
@@ -32,7 +46,17 @@
     "event_subscriptions": {
       "bot_events": [
         "app_mention",
-        "message.im"
+        "channel_rename",
+        "member_joined_channel",
+        "member_left_channel",
+        "message.channels",
+        "message.groups",
+        "message.im",
+        "message.mpim",
+        "pin_added",
+        "pin_removed",
+        "reaction_added",
+        "reaction_removed"
       ]
     },
     "interactivity": {

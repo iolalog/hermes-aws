@@ -4,5 +4,8 @@
 #   /hermes/slack-app-token      (xapp-...)
 #   /hermes/anthropic-api-key    (sk-ant-...)
 #   /hermes/openrouter-api-key   (sk-or-...)
+#
+# Memory repo: iolalog/hermes-memory (private)
+# After deploy, add the generated /root/.ssh/hermes_memory.pub as a deploy key with write access.
 
 aws_region = "eu-north-1"
