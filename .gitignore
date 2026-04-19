@@ -1,0 +1,32 @@
+# Terraform
+*.tfvars
+!*.tfvars.example
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+*.tfplan
+# .terraform.lock.hcl is intentionally committed — pins provider versions for reproducible deploys
+
+# Python
+# uv.lock is intentionally committed — pins deps for reproducible smoke test runs
+.venv/
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.pytest_cache/
+.ruff_cache/
+
+# Secrets / local config
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+
+# Editor / OS
+.DS_Store
+*.swp
+*.swo

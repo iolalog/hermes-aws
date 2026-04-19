@@ -1,0 +1,8 @@
+# All secrets are stored in AWS SSM Parameter Store and fetched at boot — NOT Terraform variables.
+# Store them once before deploying (see docs/setup.md step 3):
+#   /hermes/slack-bot-token      (xoxb-...)
+#   /hermes/slack-app-token      (xapp-...)
+#   /hermes/anthropic-api-key    (sk-ant-...)
+#   /hermes/openrouter-api-key   (sk-or-...)
+
+aws_region = "eu-north-1"
