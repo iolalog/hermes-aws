@@ -233,17 +233,20 @@ rsync -a --delete /root/.hermes/memories/ $REPO/memories/
 cp /root/.hermes/config.yaml $REPO/config.yaml 2>/dev/null || true
 cp /root/.hermes/SOUL.md $REPO/SOUL.md 2>/dev/null || true
 
-# Sync user-created skills only (not in .bundled_manifest)
+# Sync user-created skills only
+# Use the name field from SKILL.md frontmatter — this matches .bundled_manifest keys
+# (directory names differ from manifest keys for many bundled skills)
 mkdir -p $REPO/skills
 BUNDLED=$(cut -d: -f1 /root/.hermes/skills/.bundled_manifest 2>/dev/null | sort)
 find /root/.hermes/skills -name SKILL.md | while read f; do
-  skill_dir=$(dirname "$f")
-  skill_name=$(basename "$skill_dir")
-  if ! echo "$BUNDLED" | grep -qx "$skill_name"; then
-    rel="${skill_dir#/root/.hermes/skills/}"
-    mkdir -p "$REPO/skills/$(dirname $rel)"
-    rsync -a "$skill_dir/" "$REPO/skills/$rel/"
+  skill_name=$(grep -m1 "^name:" "$f" | cut -d: -f2 | xargs)
+  if [ -z "$skill_name" ] || echo "$BUNDLED" | grep -qx "$skill_name"; then
+    continue
   fi
+  skill_dir=$(dirname "$f")
+  rel="${skill_dir#/root/.hermes/skills/}"
+  mkdir -p "$REPO/skills/$(dirname $rel)"
+  rsync -a "$skill_dir/" "$REPO/skills/$rel/"
 done
 
 cd $REPO
