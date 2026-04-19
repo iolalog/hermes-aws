@@ -11,8 +11,9 @@ cd infra && terraform state list 2>/dev/null | grep hermes && echo "WARNING: exi
 
 1. Go to https://api.slack.com/apps → **Create New App** → **From a manifest**
 2. Select your workspace → paste the contents of [`docs/slack-manifest.json`](slack-manifest.json) → **Next** → **Create**
-3. **Basic Information** → **App-Level Tokens** → **Generate Token and Scopes** → name it (e.g. "hermes-socket") → add scope `connections:write` → **Generate** → copy the token (`xapp-...`)
-4. **Install to Workspace** → **Allow** → copy the **Bot User OAuth Token** (`xoxb-...`)
+3. **Basic Information** → **Display Information** → upload [`docs/hermes-slack-icon.png`](hermes-slack-icon.png) as the app icon
+4. **Basic Information** → **App-Level Tokens** → **Generate Token and Scopes** → name it (e.g. "hermes-socket") → add scope `connections:write` → **Generate** → copy the token (`xapp-...`)
+5. **Install to Workspace** → **Allow** → copy the **Bot User OAuth Token** (`xoxb-...`)
 
 ## Step 2 — Gather API keys
 
