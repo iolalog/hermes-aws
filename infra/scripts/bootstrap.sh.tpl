@@ -265,6 +265,9 @@ chmod 644 /etc/cron.d/hermes-memory-sync
 
 echo "[bootstrap] Memory sync script and cron job installed"
 
+# Initial sync — run once at bootstrap so the repo isn't empty until 2am
+/usr/local/bin/hermes-sync-memory || echo "[bootstrap] WARNING: initial memory sync failed (deploy key may not be added yet)"
+
 # ── 15. Harden OS ─────────────────────────────────────────────────────────────
 # Disable SSH password auth (access is via SSM Session Manager only)
 if ! grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config; then
