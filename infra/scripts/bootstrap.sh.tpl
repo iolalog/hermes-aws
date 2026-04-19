@@ -225,8 +225,27 @@ cat > /usr/local/bin/hermes-sync-memory <<'SYNC'
 #!/bin/bash
 export HOME=/root
 REPO=/root/.hermes/memory-repo
+
+# Sync memories
 rsync -a --delete /root/.hermes/memories/ $REPO/memories/
-rsync -a --delete /root/.hermes/skills/ $REPO/skills/
+
+# Sync config and identity
+cp /root/.hermes/config.yaml $REPO/config.yaml 2>/dev/null || true
+cp /root/.hermes/SOUL.md $REPO/SOUL.md 2>/dev/null || true
+
+# Sync user-created skills only (not in .bundled_manifest)
+mkdir -p $REPO/skills
+BUNDLED=$(cut -d: -f1 /root/.hermes/skills/.bundled_manifest 2>/dev/null | sort)
+find /root/.hermes/skills -name SKILL.md | while read f; do
+  skill_dir=$(dirname "$f")
+  skill_name=$(basename "$skill_dir")
+  if ! echo "$BUNDLED" | grep -qx "$skill_name"; then
+    rel="${skill_dir#/root/.hermes/skills/}"
+    mkdir -p "$REPO/skills/$(dirname $rel)"
+    rsync -a "$skill_dir/" "$REPO/skills/$rel/"
+  fi
+done
+
 cd $REPO
 git add -A
 if ! git diff --cached --quiet; then
@@ -236,7 +255,7 @@ fi
 SYNC
 chmod +x /usr/local/bin/hermes-sync-memory
 
-printf '*/15 * * * * root /usr/local/bin/hermes-sync-memory\n' > /etc/cron.d/hermes-memory-sync
+printf '0 2 * * * root /usr/local/bin/hermes-sync-memory\n' > /etc/cron.d/hermes-memory-sync
 chmod 644 /etc/cron.d/hermes-memory-sync
 
 echo "[bootstrap] Memory sync script and cron job installed"
