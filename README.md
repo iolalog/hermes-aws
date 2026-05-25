@@ -55,6 +55,10 @@ See [docs/setup.md](docs/setup.md) for the full guide. In brief:
    uv run pytest tests/smoke/ -v
    ```
 
+## Peer agent
+
+This instance runs alongside [openclaw-aws](https://github.com/iolalog/openclaw-aws) — a companion agent on a separate EC2 instance. The two watch each other for failures using AWS SSM: OpenClaw polls Hermes hourly and DMs the owner if either goes dark. See [openclaw-aws/docs/peer-monitoring.md](https://github.com/iolalog/openclaw-aws/blob/master/docs/peer-monitoring.md) for the full setup pattern (optional — activate by setting `peer_instance_id` in `terraform.tfvars`).
+
 ## Connect via SSM
 
 ```bash

@@ -11,3 +11,9 @@
 # After deploy, add the generated /root/.ssh/hermes_memory.pub as a deploy key with write access.
 
 aws_region = "eu-north-1"
+
+# ── Peer monitoring (optional) ────────────────────────────────────────────────
+# Uncomment to grant this instance permission to SSM into a peer agent for health checks.
+# See openclaw-aws docs/peer-monitoring.md for the full setup pattern.
+# peer_instance_id    = "i-0abc1234567890def"   # EC2 instance ID of the peer
+# peer_aws_account_id = ""                        # leave empty if same AWS account

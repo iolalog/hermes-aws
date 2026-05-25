@@ -1,6 +1,10 @@
 # ── EC2 instance role ─────────────────────────────────────────────────────────
 # EC2 instance profile provides auto-rotating credentials via IMDS — no keys on disk.
 
+locals {
+  peer_account_id = var.peer_aws_account_id != "" ? var.peer_aws_account_id : data.aws_caller_identity.current.account_id
+}
+
 resource "aws_iam_role" "hermes" {
   name = "hermes-instance-role"
 
@@ -34,9 +38,11 @@ resource "aws_iam_role_policy" "hermes_ssm_parameters" {
   })
 }
 
+# Peer monitoring — only created when var.peer_instance_id is set.
 resource "aws_iam_role_policy" "hermes_ssm_send_command" {
-  name = "hermes-ssm-send-command"
-  role = aws_iam_role.hermes.id
+  count = var.peer_instance_id != "" ? 1 : 0
+  name  = "hermes-ssm-send-command"
+  role  = aws_iam_role.hermes.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -45,14 +51,14 @@ resource "aws_iam_role_policy" "hermes_ssm_send_command" {
         Effect = "Allow"
         Action = ["ssm:SendCommand"]
         Resource = [
-          "arn:aws:ec2:eu-north-1:575108949077:instance/i-0f94c1bdc56033056",
-          "arn:aws:ssm:eu-north-1::document/AWS-RunShellScript",
+          "arn:aws:ec2:${var.aws_region}:${local.peer_account_id}:instance/${var.peer_instance_id}",
+          "arn:aws:ssm:${var.aws_region}::document/AWS-RunShellScript",
         ]
       },
       {
         Effect   = "Allow"
         Action   = ["ssm:GetCommandInvocation"]
-        Resource = "arn:aws:ssm:eu-north-1:575108949077:*"
+        Resource = "arn:aws:ssm:${var.aws_region}:${local.peer_account_id}:*"
       },
     ]
   })
