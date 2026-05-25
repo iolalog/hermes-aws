@@ -49,6 +49,7 @@
         "channel_rename",
         "member_joined_channel",
         "member_left_channel",
+        "message.bot_message",
         "message.channels",
         "message.groups",
         "message.im",
