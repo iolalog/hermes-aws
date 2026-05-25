@@ -246,7 +246,7 @@ find /root/.hermes/skills -name SKILL.md | while read f; do
     continue
   fi
   skill_dir=$(dirname "$f")
-  rel="${skill_dir#/root/.hermes/skills/}"
+  rel="$${skill_dir#/root/.hermes/skills/}"
   mkdir -p "$REPO/skills/$(dirname $rel)"
   rsync -a "$skill_dir/" "$REPO/skills/$rel/"
 done

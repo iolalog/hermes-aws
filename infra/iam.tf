@@ -34,6 +34,23 @@ resource "aws_iam_role_policy" "hermes_ssm_parameters" {
   })
 }
 
+resource "aws_iam_role_policy" "hermes_ssm_send_command" {
+  name = "hermes-ssm-send-command"
+  role = aws_iam_role.hermes.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = ["ssm:SendCommand", "ssm:GetCommandInvocation"]
+      Resource = [
+        "arn:aws:ec2:eu-north-1:575108949077:instance/i-0f94c1bdc56033056",
+        "arn:aws:ssm:eu-north-1::document/AWS-RunShellScript",
+      ]
+    }]
+  })
+}
+
 resource "aws_iam_instance_profile" "hermes" {
   name = "hermes-instance-profile"
   role = aws_iam_role.hermes.name
