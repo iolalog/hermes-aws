@@ -40,14 +40,21 @@ resource "aws_iam_role_policy" "hermes_ssm_send_command" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Action = ["ssm:SendCommand", "ssm:GetCommandInvocation"]
-      Resource = [
-        "arn:aws:ec2:eu-north-1:575108949077:instance/i-0f94c1bdc56033056",
-        "arn:aws:ssm:eu-north-1::document/AWS-RunShellScript",
-      ]
-    }]
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = ["ssm:SendCommand"]
+        Resource = [
+          "arn:aws:ec2:eu-north-1:575108949077:instance/i-0f94c1bdc56033056",
+          "arn:aws:ssm:eu-north-1::document/AWS-RunShellScript",
+        ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["ssm:GetCommandInvocation"]
+        Resource = "arn:aws:ssm:eu-north-1:575108949077:*"
+      },
+    ]
   })
 }
 
