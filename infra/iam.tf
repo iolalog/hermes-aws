@@ -24,6 +24,20 @@ resource "aws_iam_role_policy_attachment" "ssm_core" {
 }
 
 # Scoped inline policy — expand deliberately as skills are added
+resource "aws_iam_role_policy" "hermes_cost_explorer" {
+  name = "hermes-cost-explorer"
+  role = aws_iam_role.hermes.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["ce:Get*", "ce:Describe*", "ce:List*"]
+      Resource = "*"
+    }]
+  })
+}
+
 resource "aws_iam_role_policy" "hermes_ssm_parameters" {
   name = "hermes-ssm-parameters"
   role = aws_iam_role.hermes.id

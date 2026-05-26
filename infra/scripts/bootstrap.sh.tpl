@@ -172,6 +172,119 @@ chmod +x /usr/local/bin/hermes-upgrade
 
 echo "[bootstrap] Helper scripts installed"
 
+# ── 12b. Deterministic gateway health check (no LLM) ─────────────────────────
+# Mirrors the openclaw-heartbeat-check pattern.
+# Runs every 10 minutes. On failure: 3 attempts with exponential backoff
+# (0s / 60s / 120s between tries), then alerts via Slack API if all fail.
+# Sends a recovery notification when the service comes back up.
+# Never uses the Hermes LLM — Slack API only.
+cat > /usr/local/bin/hermes-heartbeat-check <<'HEARTBEAT'
+#!/bin/bash
+set -uo pipefail
+
+STATE_DIR=/var/lib/hermes
+ALERT_SENT_FILE="$STATE_DIR/heartbeat-alert-sent"
+LOCK_FILE=/var/lock/hermes-heartbeat.lock
+LOG=/var/log/hermes-heartbeat.log
+STALE_SECONDS=3900
+ALERT_REPEAT_SECS=3600
+
+log() { echo "[$(date -u +%FT%TZ)] $*" >> "$LOG"; }
+
+get_slack_token() {
+  grep -m1 '^SLACK_BOT_TOKEN=' /root/.hermes/.env 2>/dev/null | cut -d= -f2-
+}
+
+get_owner_id() {
+  grep -m1 '^SLACK_ALLOWED_USERS=' /root/.hermes/.env 2>/dev/null \
+    | cut -d= -f2- | tr ',' '\n' | grep -m1 '^U' || true
+}
+
+slack_dm() {
+  local msg="$1"
+  local token owner payload resp ok
+  token=$(get_slack_token) || { log "ERROR: cannot read Slack token"; return 1; }
+  [ -z "$token" ] && { log "ERROR: empty Slack token"; return 1; }
+  owner=$(get_owner_id) || { log "ERROR: cannot determine owner Slack ID"; return 1; }
+  [ -z "$owner" ] && { log "ERROR: SLACK_ALLOWED_USERS not set — cannot send DM"; return 1; }
+  payload=$(python3 -c "import json,sys; print(json.dumps({'channel':sys.argv[1],'text':sys.argv[2]}))" \
+    "$owner" "$msg")
+  resp=$(curl -sf -X POST https://slack.com/api/chat.postMessage \
+    -H "Authorization: Bearer $token" \
+    -H "Content-Type: application/json" \
+    -d "$payload" 2>/dev/null) || { log "ERROR: curl failed"; return 1; }
+  ok=$(python3 -c "import json,sys; print(json.load(sys.stdin).get('ok',False))" <<< "$resp" 2>/dev/null || echo False)
+  [ "$ok" = "True" ] && log "Slack DM sent" || log "ERROR: Slack DM failed: $resp"
+}
+
+check_gateway() {
+  systemctl is-active --quiet hermes-gateway || return 1
+  # Secondary: heartbeat.json freshness (written by hermes framework every 30 min)
+  local hb="$STATE_DIR/heartbeat.json"
+  if [ -f "$hb" ]; then
+    local ts age
+    ts=$(python3 -c "import json; d=json.load(open('$hb')); print(d.get('ts',''))" 2>/dev/null || true)
+    if [ -n "$ts" ]; then
+      age=$(( $(date -u +%s) - $(date -u -d "$ts" +%s 2>/dev/null || echo 0) ))
+      [ "$age" -lt "$STALE_SECONDS" ] || return 1
+    fi
+  fi
+}
+
+probed_check() {
+  local delays=(0 60 120)
+  for i in 0 1 2; do
+    [ "$${delays[$i]}" -gt 0 ] && { log "Waiting $${delays[$i]}s before retry..."; sleep "$${delays[$i]}"; }
+    if check_gateway; then
+      log "Attempt $((i+1))/3: healthy"
+      return 0
+    fi
+    log "Attempt $((i+1))/3: failed (service=$(systemctl is-active hermes-gateway 2>/dev/null || echo unknown))"
+  done
+  return 1
+}
+
+exec 9>"$LOCK_FILE"
+flock -n 9 || { log "Another check running — skipping"; exit 0; }
+
+mkdir -p "$STATE_DIR"
+
+if probed_check; then
+  if [ -f "$ALERT_SENT_FILE" ]; then
+    log "Service recovered — notifying"
+    slack_dm "✅ Hermes gateway recovered ($(date -u +%FT%TZ))."
+    rm -f "$ALERT_SENT_FILE"
+  fi
+  exit 0
+fi
+
+# All 3 attempts failed
+now=$(date +%s)
+if [ -f "$ALERT_SENT_FILE" ]; then
+  last=$(stat -c %Y "$ALERT_SENT_FILE" 2>/dev/null || echo 0)
+  elapsed=$((now - last))
+  if [ "$elapsed" -lt "$ALERT_REPEAT_SECS" ]; then
+    log "Still down — alert suppressed (last sent $${elapsed}s ago, cooldown $${ALERT_REPEAT_SECS}s)"
+    exit 0
+  fi
+  log "Still down — re-alerting after $${elapsed}s"
+else
+  log "Confirmed down after 3 attempts — alerting"
+fi
+
+slack_dm "🔴 Hermes gateway DOWN ($(date -u +%FT%TZ)). All 3 checks failed. Run: journalctl -u hermes-gateway -n 50"
+touch "$ALERT_SENT_FILE"
+HEARTBEAT
+chmod +x /usr/local/bin/hermes-heartbeat-check
+
+cat > /etc/cron.d/hermes-heartbeat <<'CRON'
+# Deterministic gateway health check — no LLM. Alerts via Slack API after 3 failed probes.
+*/10 * * * * root /usr/local/bin/hermes-heartbeat-check
+CRON
+chmod 644 /etc/cron.d/hermes-heartbeat
+
+echo "[bootstrap] Deterministic heartbeat check installed"
+
 # ── 13. Install and start the hermes-gateway systemd service ──────────────────
 cat > /etc/systemd/system/hermes-gateway.service <<SERVICE
 [Unit]
@@ -188,6 +301,7 @@ EnvironmentFile=/root/.hermes/.env
 ExecStart=/root/.hermes/venv/bin/hermes gateway run
 Restart=always
 RestartSec=10
+MemoryMax=1400M
 StandardOutput=journal
 StandardError=journal
 
@@ -268,7 +382,20 @@ echo "[bootstrap] Memory sync script and cron job installed"
 # Initial sync — run once at bootstrap so the repo isn't empty until 2am
 /usr/local/bin/hermes-sync-memory || echo "[bootstrap] WARNING: initial memory sync failed (deploy key may not be added yet)"
 
-# ── 15. Harden OS ─────────────────────────────────────────────────────────────
+# ── 15. Swap (2 GB safety net for 1.8 GiB instance) ──────────────────────────
+if [ ! -f /swapfile ]; then
+  fallocate -l 2G /swapfile
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  echo 'vm.swappiness=10' > /etc/sysctl.d/99-swap.conf
+  sysctl -p /etc/sysctl.d/99-swap.conf
+fi
+
+echo "[bootstrap] Swapfile configured (2 GB, swappiness=10)"
+
+# ── 16. Harden OS ─────────────────────────────────────────────────────────────
 # Disable SSH password auth (access is via SSM Session Manager only)
 if ! grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config; then
   echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
