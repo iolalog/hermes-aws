@@ -9,6 +9,14 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
+
+  default_tags {
+    tags = {
+      project    = "hermes"
+      managed-by = "terraform"
+      repo       = "iolalog/hermes-aws"
+    }
+  }
 }
 
 data "aws_caller_identity" "current" {}
