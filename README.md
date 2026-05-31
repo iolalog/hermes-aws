@@ -55,6 +55,10 @@ See [docs/setup.md](docs/setup.md) for the full guide. In brief:
    uv run pytest tests/smoke/ -v
    ```
 
+## Web UI (planned, not implemented)
+
+A browser-based chat interface via [hermes-webui](https://github.com/nesquena/hermes-webui) is planned. The approach: run it alongside `hermes-gateway` on the same instance, bound to `127.0.0.1:8787`, accessed via SSM port-forwarding — no security group changes needed. See [docs/webui.md](docs/webui.md) for the full plan.
+
 ## Peer agent
 
 This instance runs alongside [openclaw-aws](https://github.com/iolalog/openclaw-aws) — a companion agent on a separate EC2 instance. The two watch each other for failures using AWS SSM: OpenClaw polls Hermes hourly and DMs the owner if either goes dark. See [openclaw-aws/docs/peer-monitoring.md](https://github.com/iolalog/openclaw-aws/blob/master/docs/peer-monitoring.md) for the full setup pattern (optional — activate by setting `peer_instance_id` in `terraform.tfvars`).
